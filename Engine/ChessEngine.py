@@ -168,14 +168,13 @@ class GameState():
             moves=self.getAllPossibleMoves()
         if len(moves) == 0:
             if self.inCheck:
-                print("Check Mate!" + ('white' if not self.whiteToMove else 'black')+"wins")
-                self.checkMate=True
+                    self.checkMate=True
             else:
-                print("Stalemate")
                 self.staleMate=True
         else:
-            self.checkMate=False
             self.staleMate=False
+            self.checkMate=False
+            
         self.currentCastlingRights=tempCastlingRights
         self.getCastleMoves(kingRow,kingCol,moves)
         return moves
