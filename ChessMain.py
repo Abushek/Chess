@@ -1,7 +1,7 @@
 #GameState File
 from tkinter.tix import IMAGE
 import pygame as p
-from Engine import ChessEngine
+from Engine import ChessEngine,SmartMoveFinder
 width=height=512
 dimension=8
 sqr_size=height//dimension
@@ -28,14 +28,16 @@ def main():
     running=True
     sqselect=()#(row,col)
     playerClicks=[]#Keeps track of player clicks(two tuples: [#Initial(row6,col4),#Final(row4,row4)])
-
+    playerOne = True #If Human plays white, then this is True, If AI is playing then its False
+    playerTwo = False
     while running:
+        humanTurn= (gs.whiteToMove and playerOne) or (not gs.whiteToMove and playerTwo)
         for e in p.event.get():
             if e.type== p.QUIT:
                 running=False
             #mouse handler
             elif e.type==p.MOUSEBUTTONDOWN:
-                if not gameOver:
+                if not gameOver and humanTurn:
                     location=p.mouse.get_pos()
                     col=location[0]//sqr_size
                     row=location[1]//sqr_size
@@ -69,23 +71,30 @@ def main():
                     playerClicks=[]
                     moveMade=False
                     animate=False
-
+        #AI Move Finder
+        if not gameOver and not humanTurn:
+            AIMove = SmartMoveFinder.findRandomMove(validMoves)
+            gs.makeMove(AIMove)
+            moveMade = True
+            animate = True
+            
         if moveMade:
             if animate:
                 animateMove(gs.moveLog[-1],screen,gs.board,clock)
             validMoves=gs.getValidMoves()
             moveMade=False
             animate=False
+        drawGameState(screen,gs,validMoves,sqselect)
         if gs.checkMate:
             gameOver=True
             if gs.whiteToMove:
-                drawText(screen,'Black wins by Checkmate')
+                drawText(screen,"Black wins by Checkmate")
             else:
-                drawText(screen,'White wins by Checkmate')
+                drawText(screen,"White wins by Checkmate")
         elif gs.staleMate:
             gameOver=True
             drawText(screen,'Stalemate')
-        drawGameState(screen,gs,validMoves,sqselect)
+        
         clock.tick(max_fps)
         p.display.flip()
 
@@ -148,9 +157,10 @@ def animateMove(move,screen,board,clock):
         clock.tick(60)
 def drawText(screen,text):
     font=p.font.SysFont("Helvitca",32,True,False)
-    textObject = font.render(text,0,p.Color('Black'))
+    textObject = font.render(text,0,p.Color('Gray'))
     textLocation=p.Rect(0,0,width,height).move(width/2-textObject.get_width()//2,height/2-textObject.get_height()//2)
     screen.blit(textObject,textLocation)
-
+    textObject = font.render(text,0,p.Color('Black'))
+    screen.blit(textObject,textLocation.move(2,2))
 if __name__=="__main__":
     main()
