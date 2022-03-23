@@ -28,7 +28,7 @@ def main():
     running=True
     sqselect=()#(row,col)
     playerClicks=[]#Keeps track of player clicks(two tuples: [#Initial(row6,col4),#Final(row4,row4)])
-    playerOne = True #If Human plays white, then this is True, If AI is playing then its False
+    playerOne = False #If Human plays white, then this is True, If AI is playing then its False
     playerTwo = False
     while running:
         humanTurn= (gs.whiteToMove and playerOne) or (not gs.whiteToMove and playerTwo)
@@ -73,7 +73,9 @@ def main():
                     animate=False
         #AI Move Finder
         if not gameOver and not humanTurn:
-            AIMove = SmartMoveFinder.findRandomMove(validMoves)
+            AIMove = SmartMoveFinder.findBestMove(gs,validMoves)
+            if AIMove is None:
+                AIMove = SmartMoveFinder.findRandomMove(validMoves)
             gs.makeMove(AIMove)
             moveMade = True
             animate = True
