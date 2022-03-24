@@ -28,7 +28,7 @@ def main():
     running=True
     sqselect=()#(row,col)
     playerClicks=[]#Keeps track of player clicks(two tuples: [#Initial(row6,col4),#Final(row4,row4)])
-    playerOne = False #If Human plays white, then this is True, If AI is playing then its False
+    playerOne = True #If Human plays white, then this is True, If AI is playing then its False
     playerTwo = False
     while running:
         humanTurn= (gs.whiteToMove and playerOne) or (not gs.whiteToMove and playerTwo)
@@ -64,6 +64,7 @@ def main():
                     gs.undoMove()
                     moveMade=True
                     animate=False
+                    gameOver = False
                 if e.key == p.K_r:
                     gs=ChessEngine.GameState()
                     validMoves = gs.getValidMoves()
@@ -71,9 +72,10 @@ def main():
                     playerClicks=[]
                     moveMade=False
                     animate=False
+                    gameOver=False
         #AI Move Finder
         if not gameOver and not humanTurn:
-            AIMove = SmartMoveFinder.findBestMove(gs,validMoves)
+            AIMove = SmartMoveFinder.findBestMoveMinMax(gs,validMoves)
             if AIMove is None:
                 AIMove = SmartMoveFinder.findRandomMove(validMoves)
             gs.makeMove(AIMove)

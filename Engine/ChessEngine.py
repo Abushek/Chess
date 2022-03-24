@@ -99,6 +99,8 @@ class GameState():
             else:  # King side castle
                 self.board[move.endRow][move.endCol - 1] = '--'
                 self.board[move.endRow][7] = move.pieceMoved[0] + 'R'
+        self.checkMate = False
+        self.staleMate = False
 
     def updateCastleRights(self,move):
         if move.pieceMoved == 'wK':
