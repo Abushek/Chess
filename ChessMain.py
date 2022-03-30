@@ -2,6 +2,7 @@
 from tkinter.tix import IMAGE
 import pygame as p
 from Engine import ChessEngine,SmartMoveFinder
+from multiprocessing import Process,Queue
 width=height=512
 dimension=8
 sqr_size=height//dimension
@@ -28,8 +29,11 @@ def main():
     running=True
     sqselect=()#(row,col)
     playerClicks=[]#Keeps track of player clicks(two tuples: [#Initial(row6,col4),#Final(row4,row4)])
-    playerOne = True #If Human plays white, then this is True, If AI is playing then its False
+    playerOne = False #If Human plays white, then this is True, If AI is playing then its False
     playerTwo = False
+    AIThinking = False
+    moveFinderProcess = None
+    moveUndone =False
     while running:
         humanTurn= (gs.whiteToMove and playerOne) or (not gs.whiteToMove and playerTwo)
         for e in p.event.get():
@@ -37,7 +41,7 @@ def main():
                 running=False
             #mouse handler
             elif e.type==p.MOUSEBUTTONDOWN:
-                if not gameOver and humanTurn:
+                if not gameOver:
                     location=p.mouse.get_pos()
                     col=location[0]//sqr_size
                     row=location[1]//sqr_size
@@ -47,7 +51,7 @@ def main():
                     else:
                         sqselect=(row,col)
                         playerClicks.append(sqselect)
-                    if len(playerClicks) == 2:
+                    if len(playerClicks) == 2 and humanTurn:
                         move=ChessEngine.Move(playerClicks[0],playerClicks[1],gs.board)
                         print(move.getChessNotation())
                         for i in range(len(validMoves)):
@@ -65,6 +69,10 @@ def main():
                     moveMade=True
                     animate=False
                     gameOver = False
+                    if AIThinking:
+                        moveFinderProcess.terminate()
+                        AIThinking=False
+                    moveUndone=True
                 if e.key == p.K_r:
                     gs=ChessEngine.GameState()
                     validMoves = gs.getValidMoves()
@@ -73,14 +81,29 @@ def main():
                     moveMade=False
                     animate=False
                     gameOver=False
+                    if AIThinking:
+                        moveFinderProcess.terminate()
+                        AIThinking=False
+                    moveUndone=True
+
         #AI Move Finder
-        if not gameOver and not humanTurn:
-            AIMove = SmartMoveFinder.findBestMoveNew(gs,validMoves)
-            if AIMove is None:
-                AIMove = SmartMoveFinder.findRandomMove(validMoves)
-            gs.makeMove(AIMove)
-            moveMade = True
-            animate = True
+        if not gameOver and not humanTurn and not moveUndone:
+            if not AIThinking:
+                AIThinking=True
+                print("Thinking...")
+                returnQueue =Queue()
+                moveFinderProcess=Process(target=SmartMoveFinder.findBestMoveNew,args=(gs,validMoves,returnQueue))
+                moveFinderProcess.start()
+
+            if not moveFinderProcess.is_alive():
+                print("Done Thinking")
+                AIMove = returnQueue.get()
+                if AIMove is None:
+                    AIMove = SmartMoveFinder.findRandomMove(validMoves)
+                gs.makeMove(AIMove)
+                moveMade = True
+                animate = True
+                AIThinking=False
             
         if moveMade:
             if animate:
@@ -88,6 +111,7 @@ def main():
             validMoves=gs.getValidMoves()
             moveMade=False
             animate=False
+            moveUndone =False
         drawGameState(screen,gs,validMoves,sqselect)
         if gs.checkMate:
             gameOver=True
@@ -154,6 +178,9 @@ def animateMove(move,screen,board,clock):
         p.draw.rect(screen,color,endSquare)
         #draw captured piece onto rectangle
         if move.pieceCaptured!='--':
+            if move.isEnpassantMove:
+                enPassantRow=(move.endRow+1) if move.pieceCaptured[0] == 'b' else move.endRow - 1
+                endSquare = p.Rect(move.endCol*sqr_size,enPassantRow*sqr_size,sqr_size,sqr_size)
             screen.blit(images[move.pieceCaptured],endSquare)
         #draw moving piece
         screen.blit(images[move.pieceMoved],p.Rect(c*sqr_size,r*sqr_size,sqr_size,sqr_size))
